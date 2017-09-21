@@ -6,7 +6,10 @@ import (
 
 	"net/http"
 
+	"io/ioutil"
+
 	"github.com/Financial-Times/photo-tron/fotoware"
+	"github.com/Financial-Times/photo-tron/suggest"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	log "github.com/sirupsen/logrus"
@@ -45,10 +48,85 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p, err := h.fotowareAPI.Search(keywords)
+
 	if err != nil {
 		writeMessage(w, err.Error(), 500)
 	}
 
+	outBody, err := buildBody(p)
+
+	if err != nil {
+		writeMessage(w, err.Error(), 500)
+	}
+	w.Write(outBody)
+}
+
+func writeMessage(w http.ResponseWriter, msg string, status int) {
+	w.WriteHeader(status)
+
+	message := make(map[string]interface{})
+	message["message"] = msg
+	j, err := json.Marshal(&message)
+
+	if err != nil {
+		log.WithError(err).Warn("Failed to parse provided message to json, this is a bug.")
+		return
+	}
+
+	w.Write(j)
+}
+
+type Result struct {
+	Url         string   `json:"url"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Tags        []string `json:"tags"`
+}
+
+type SuggestHandler struct {
+	suggestAPI  *suggest.SuggestAPI
+	fotowareAPI *fotoware.FotowareAPI
+}
+
+func NewSuggestHandler(suggestAPI *suggest.SuggestAPI, fwAPI *fotoware.FotowareAPI) *SuggestHandler {
+	return &SuggestHandler{suggestAPI, fwAPI}
+}
+
+func (h *SuggestHandler) SuggestServeHTTP(w http.ResponseWriter, r *http.Request) {
+	tID := tidutils.GetTransactionIDFromRequest(r)
+
+	body, err := ioutil.ReadAll(r.Body)
+	w.Header().Add("Content-Type", "application/json")
+	suggestions, err := h.suggestAPI.Search(body)
+	if err != nil {
+		log.WithError(err).WithField(tidutils.TransactionIDKey, tID).Error("Error in calling UPP Public Annotations API")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	keywords := []string{}
+
+	for _, s := range suggestions.Suggestions {
+		if s.Thing.PrefLabel != "" {
+			keywords = append(keywords, s.Thing.PrefLabel)
+		}
+	}
+
+	p, err := h.fotowareAPI.Search(keywords)
+
+	if err != nil {
+		writeMessage(w, err.Error(), 500)
+	}
+
+	outBody, err := buildBody(p)
+
+	if err != nil {
+		writeMessage(w, err.Error(), 500)
+	}
+	w.Write(outBody)
+}
+
+func buildBody(p fotoware.Payload) ([]byte, error) {
 	results := []Result{}
 
 	for _, d := range p.Data {
@@ -80,31 +158,5 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		results = append(results, res)
 	}
 
-	body, err := json.Marshal(results)
-	if err != nil {
-		writeMessage(w, err.Error(), 500)
-	}
-	w.Write(body)
-}
-
-func writeMessage(w http.ResponseWriter, msg string, status int) {
-	w.WriteHeader(status)
-
-	message := make(map[string]interface{})
-	message["message"] = msg
-	j, err := json.Marshal(&message)
-
-	if err != nil {
-		log.WithError(err).Warn("Failed to parse provided message to json, this is a bug.")
-		return
-	}
-
-	w.Write(j)
-}
-
-type Result struct {
-	Url         string   `json:"url"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Tags        []string `json:"tags"`
+	return json.Marshal(results)
 }

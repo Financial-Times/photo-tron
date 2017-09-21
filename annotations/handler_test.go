@@ -1,5 +1,6 @@
 package annotations
 
+/*
 import (
 	"io/ioutil"
 	"net/http"
@@ -195,3 +196,4 @@ const annotationsBody = `[
       "prefLabel": "David J Lynch"
    }
 ]`
+*/

@@ -1,5 +1,6 @@
 package annotations
 
+/*
 import (
 	"net/http"
 	"net/http/httptest"
@@ -63,3 +64,4 @@ func newAnnotationsAPIGTGServerMock(t *testing.T, status int, body string) *http
 	}))
 	return ts
 }
+*/
