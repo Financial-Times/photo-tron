@@ -1,6 +1,6 @@
 # Draft Annotations API
 
-[![Circle CI](https://circleci.com/gh/Financial-Times/draft-annotations-api/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/draft-annotations-api/tree/master)[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/draft-annotations-api)](https://goreportcard.com/report/github.com/Financial-Times/draft-annotations-api) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/draft-annotations-api/badge.svg)](https://coveralls.io/github/Financial-Times/draft-annotations-api)
+[![Circle CI](https://circleci.com/gh/Financial-Times/photo-tron/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/photo-tron/tree/master)[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/photo-tron)](https://goreportcard.com/report/github.com/Financial-Times/photo-tron) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/photo-tron/badge.svg)](https://coveralls.io/github/Financial-Times/photo-tron)
 
 ## Introduction
 
@@ -12,10 +12,10 @@ Download the source code, dependencies and test dependencies:
 
 ```
 go get -u github.com/kardianos/govendor
-mkdir $GOPATH/src/github.com/Financial-Times/draft-annotations-api
+mkdir $GOPATH/src/github.com/Financial-Times/photo-tron
 cd $GOPATH/src/github.com/Financial-Times
-git clone https://github.com/Financial-Times/draft-annotations-api.git
-cd draft-annotations-api && govendor sync
+git clone https://github.com/Financial-Times/photo-tron.git
+cd photo-tron && govendor sync
 go build .
 ```
 
@@ -32,11 +32,11 @@ go install
 2. Run the binary (using the `help` flag to see the available optional arguments):
 
 ```
-$GOPATH/bin/draft-annotations-api [--help]
+$GOPATH/bin/photo-tron [--help]
 
 Options:
-  --app-system-code="draft-annotations-api"                                System Code of the application ($APP_SYSTEM_CODE)
-  --app-name="draft-annotations-api"                                       Application name ($APP_NAME)
+  --app-system-code="photo-tron"                                System Code of the application ($APP_SYSTEM_CODE)
+  --app-name="photo-tron"                                       Application name ($APP_NAME)
   --port="8080"                                                            Port to listen on ($APP_PORT)
   --annotations-endpoint="http://test.api.ft.com/content/%v/annotations"   Endpoint to get annotations from UPP ($ANNOTATIONS_ENDPOINT)
   --upp-api-key=""                                                         API key to access UPP ($UPP_APIKEY)
@@ -56,8 +56,8 @@ Options:
 
 ## Build and deployment
 
-* Built by Docker Hub on merge to master: [coco/draft-annotations-api](https://hub.docker.com/r/coco/draft-annotations-api/)
-* CI provided by CircleCI: [draft-annotations-api](https://circleci.com/gh/Financial-Times/draft-annotations-api)
+* Built by Docker Hub on merge to master: [coco/photo-tron](https://hub.docker.com/r/coco/photo-tron/)
+* CI provided by CircleCI: [photo-tron](https://circleci.com/gh/Financial-Times/photo-tron)
 
 ## Service endpoints
 

@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"bytes"
-	"github.com/Financial-Times/draft-annotations-api/mapper"
+	"github.com/Financial-Times/photo-tron/mapper"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	log "github.com/sirupsen/logrus"

@@ -5,8 +5,8 @@ import (
 	"os"
 
 	api "github.com/Financial-Times/api-endpoint"
-	"github.com/Financial-Times/draft-annotations-api/annotations"
-	"github.com/Financial-Times/draft-annotations-api/health"
+	"github.com/Financial-Times/photo-tron/annotations"
+	"github.com/Financial-Times/photo-tron/health"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/husobee/vestigo"
@@ -18,18 +18,18 @@ import (
 const appDescription = "PAC Draft Annotations API"
 
 func main() {
-	app := cli.App("draft-annotations-api", appDescription)
+	app := cli.App("photo-tron", appDescription)
 
 	appSystemCode := app.String(cli.StringOpt{
 		Name:   "app-system-code",
-		Value:  "draft-annotations-api",
+		Value:  "photo-tron",
 		Desc:   "System Code of the application",
 		EnvVar: "APP_SYSTEM_CODE",
 	})
 
 	appName := app.String(cli.StringOpt{
 		Name:   "app-name",
-		Value:  "draft-annotations-api",
+		Value:  "photo-tron",
 		Desc:   "Application name",
 		EnvVar: "APP_NAME",
 	})

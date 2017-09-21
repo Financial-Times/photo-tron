@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Financial-Times/draft-annotations-api/annotations"
+	"github.com/Financial-Times/photo-tron/annotations"
 	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/service-status-go/gtg"
 )
@@ -34,7 +34,7 @@ func (service *HealthService) annotationsAPICheck() fthealth.Check {
 		ID:               "check-annotations-api-health",
 		BusinessImpact:   "Impossible to serve annotations through PAC",
 		Name:             "Check UPP Public Annotations API Health",
-		PanicGuide:       "https://dewey.ft.com/draft-annotations-api.html",
+		PanicGuide:       "https://dewey.ft.com/photo-tron.html",
 		Severity:         1,
 		TechnicalSummary: fmt.Sprintf("UPP Public Annotations API is not available at %v", service.annotationsAPI.Endpoint()),
 		Checker:          service.annotationsAPIChecker,
