@@ -71,6 +71,13 @@ func main() {
 		EnvVar: "FW_APIKEY",
 	})
 
+	suggestAPIKey := app.String(cli.StringOpt{
+		Name:   "upp-api-key",
+		Value:  "",
+		Desc:   "API key to access UPP",
+		EnvVar: "SUGGEST_APIKEY",
+	})
+
 	log.SetLevel(log.InfoLevel)
 	log.Infof("[Startup] %v is starting", *appSystemCode)
 
@@ -78,7 +85,7 @@ func main() {
 		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
 
 		fwAPI := fotoware.NewFotowareAPI(*fotowareAPIKey)
-		suggestAPI := suggest.NewSuggestAPI(*uppAPIKey)
+		suggestAPI := suggest.NewSuggestAPI(*suggestAPIKey)
 		annotationsAPI := annotations.NewAnnotationsAPI(*annotationsEndpoint, *uppAPIKey)
 		annotationsHandler := annotations.NewHandler(annotationsAPI, fwAPI)
 		suggestHandler := annotations.NewSuggestHandler(suggestAPI, fwAPI)
