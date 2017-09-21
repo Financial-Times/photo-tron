@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"bytes"
-	"github.com/Financial-Times/photo-tron/mapper"
+	"github.com/Financial-Times/photo-tron/fotoware"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	log "github.com/sirupsen/logrus"
@@ -16,43 +16,47 @@ import (
 
 type Handler struct {
 	annotationsAPI AnnotationsAPI
+	fotowareAPI    *fotoware.FotowareAPI
 }
 
-func NewHandler(api AnnotationsAPI) *Handler {
-	return &Handler{api}
+func NewHandler(api AnnotationsAPI, fwAPI *fotoware.FotowareAPI) *Handler {
+	return &Handler{api, fwAPI}
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	uuid := vestigo.Param(r, "uuid")
 	tID := tidutils.GetTransactionIDFromRequest(r)
 	ctx := tidutils.TransactionAwareContext(context.Background(), tID)
-	resp, err := h.annotationsAPI.Get(ctx, uuid)
+	ann, err := h.annotationsAPI.Get(ctx, uuid)
 	if err != nil {
 		log.WithError(err).WithField(tidutils.TransactionIDKey, tID).WithField("uuid", uuid).Error("Error in calling UPP Public Annotations API")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	keywords := []string{}
+
+	for _, a := range ann {
+		if a.Predicate == "http://www.ft.com/ontology/annotation/majorMentions" ||
+			a.Predicate == "http://www.ft.com/ontology/annotation/mentions" ||
+			a.Predicate == "http://www.ft.com/ontology/annotation/about" {
+			keywords = append(keywords, a.PrefLabel)
+		}
+	}
+
+	resp, err := h.fotowareAPI.Search(keywords)
+
 	defer resp.Body.Close()
 
 	w.Header().Add("Content-Type", "application/json")
 	if resp.StatusCode == http.StatusOK {
 		respBody, _ := ioutil.ReadAll(resp.Body)
-		convertedBody, err := mapper.ConvertPredicates(respBody)
-
-		if err != nil {
-			log.WithError(err).WithField(tidutils.TransactionIDKey, tID).WithField("uuid", uuid).Error("Error in calling UPP Public Annotations API")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		} else if err == nil && convertedBody == nil {
-			writeMessage(w, "No annotations can be found", http.StatusNotFound)
-			return
-		} else {
-			reader := bytes.NewReader(convertedBody)
-			w.WriteHeader(resp.StatusCode)
-			io.Copy(w, reader)
-			return
-		}
+		reader := bytes.NewReader(respBody)
+		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, reader)
+		return
 	}
+
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadRequest {
 		w.WriteHeader(resp.StatusCode)
 		io.Copy(w, resp.Body)

@@ -5,9 +5,10 @@ import (
 	"os"
 
 	api "github.com/Financial-Times/api-endpoint"
-	"github.com/Financial-Times/photo-tron/annotations"
-	"github.com/Financial-Times/photo-tron/health"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
+	"github.com/Financial-Times/photo-tron/annotations"
+	"github.com/Financial-Times/photo-tron/fotoware"
+	"github.com/Financial-Times/photo-tron/health"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/husobee/vestigo"
 	"github.com/jawher/mow.cli"
@@ -62,14 +63,22 @@ func main() {
 		EnvVar: "API_YML",
 	})
 
+	fotowareAPIKey := app.String(cli.StringOpt{
+		Name:   "fotoware-api-key",
+		Value:  "",
+		Desc:   "",
+		EnvVar: "FW_APIKEY",
+	})
+
 	log.SetLevel(log.InfoLevel)
 	log.Infof("[Startup] %v is starting", *appSystemCode)
 
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
 
+		fwAPI := fotoware.NewFotowareAPI(*fotowareAPIKey)
 		annotationsAPI := annotations.NewAnnotationsAPI(*annotationsEndpoint, *uppAPIKey)
-		annotationsHandler := annotations.NewHandler(annotationsAPI)
+		annotationsHandler := annotations.NewHandler(annotationsAPI, fwAPI)
 		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, annotationsAPI)
 
 		serveEndpoints(*port, apiYml, annotationsHandler, healthService)
@@ -85,7 +94,7 @@ func main() {
 func serveEndpoints(port string, apiYml *string, handler *annotations.Handler, healthService *health.HealthService) {
 
 	r := vestigo.NewRouter()
-	r.Get("/drafts/content/:uuid/annotations", handler.ServeHTTP)
+	r.Get("/photos-by-uuid/:uuid", handler.ServeHTTP)
 	var monitoringRouter http.Handler = r
 	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
 	monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)

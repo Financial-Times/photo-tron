@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"encoding/json"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -16,7 +17,7 @@ const annotationsEndpoint = "/annotations"
 const syntheticContentUUID = "4f2f97ea-b8ec-11e4-b8e6-00144feab7de"
 
 type AnnotationsAPI interface {
-	Get(ctx context.Context, contentUUID string) (*http.Response, error)
+	Get(ctx context.Context, contentUUID string) ([]Annotation, error)
 	GTG() error
 	Endpoint() string
 }
@@ -31,7 +32,7 @@ func NewAnnotationsAPI(endpoint string, apiKey string) AnnotationsAPI {
 	return &annotationsAPI{endpointTemplate: endpoint, apiKey: apiKey, httpClient: &http.Client{}}
 }
 
-func (api *annotationsAPI) Get(ctx context.Context, contentUUID string) (*http.Response, error) {
+func (api *annotationsAPI) Get(ctx context.Context, contentUUID string) ([]Annotation, error) {
 	apiReqURI := fmt.Sprintf(api.endpointTemplate, contentUUID)
 	getAnnotationsLog := log.WithField("url", apiReqURI).WithField("uuid", contentUUID)
 
@@ -54,7 +55,28 @@ func (api *annotationsAPI) Get(ctx context.Context, contentUUID string) (*http.R
 	}
 
 	getAnnotationsLog.Info("Calling UPP Public Annotations API")
-	return api.httpClient.Do(apiReq)
+	res, err := api.httpClient.Do(apiReq)
+	if err != nil {
+		return []Annotation{}, err
+	}
+	defer res.Body.Close()
+
+	b, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		return []Annotation{}, err
+	}
+
+	var ann []Annotation
+	err = json.Unmarshal(b, &ann)
+
+	if err != nil {
+		return []Annotation{}, err
+	}
+
+	fmt.Printf("%+v", ann)
+
+	return ann, nil
 }
 
 func (api *annotationsAPI) GTG() error {
