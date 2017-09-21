@@ -25,10 +25,10 @@ func (f *FotowareAPI) Search(keywords []string) (Payload, error) {
 	url := "https://fotoware-test.ft.com/fotoweb/archives/5003-Latest%20Images/?q="
 	for _, k := range keywords {
 		fk := strings.Replace(strings.ToLower(k), " ", "%20", -1)
-		url += "120%3A" + fk + "+AND+"
+		url += "120%3A" + fk + "+OR+"
 	}
 
-	url = strings.TrimSuffix(url, "+AND+")
+	url = strings.TrimSuffix(url, "+OR+")
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return Payload{}, err
