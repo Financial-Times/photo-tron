@@ -3,15 +3,13 @@ package annotations
 import (
 	"context"
 	"encoding/json"
-	"io"
+
 	"net/http"
 
-	"bytes"
 	"github.com/Financial-Times/photo-tron/fotoware"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 )
 
 type Handler struct {
@@ -28,6 +26,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tID := tidutils.GetTransactionIDFromRequest(r)
 	ctx := tidutils.TransactionAwareContext(context.Background(), tID)
 	ann, err := h.annotationsAPI.Get(ctx, uuid)
+
+	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
 		log.WithError(err).WithField(tidutils.TransactionIDKey, tID).WithField("uuid", uuid).Error("Error in calling UPP Public Annotations API")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -44,25 +44,47 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resp, err := h.fotowareAPI.Search(keywords)
-
-	defer resp.Body.Close()
-
-	w.Header().Add("Content-Type", "application/json")
-	if resp.StatusCode == http.StatusOK {
-		respBody, _ := ioutil.ReadAll(resp.Body)
-		reader := bytes.NewReader(respBody)
-		w.WriteHeader(resp.StatusCode)
-		io.Copy(w, reader)
-		return
+	p, err := h.fotowareAPI.Search(keywords)
+	if err != nil {
+		writeMessage(w, err.Error(), 500)
 	}
 
-	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadRequest {
-		w.WriteHeader(resp.StatusCode)
-		io.Copy(w, resp.Body)
-	} else {
-		writeMessage(w, "Service unavailable", http.StatusServiceUnavailable)
+	results := []Result{}
+
+	for _, d := range p.Data {
+		var href string
+		res := Result{}
+		for _, p := range d.Previews {
+			if p.Size == 2400 {
+				href = p.Href
+			}
+
+		}
+		res.Url = "https://fotoware-test.ft.com" + href
+		for _, f := range d.BuiltinFields {
+			if f.Field == "title" {
+				res.Title = f.Value.(string)
+			}
+			if f.Field == "description" {
+				res.Description = f.Value.(string)
+			}
+			if f.Field == "tags" {
+				tags := []string{}
+				for _, t := range f.Value.([]interface{}) {
+					tags = append(tags, t.(string))
+				}
+				res.Tags = tags
+			}
+		}
+
+		results = append(results, res)
 	}
+
+	body, err := json.Marshal(results)
+	if err != nil {
+		writeMessage(w, err.Error(), 500)
+	}
+	w.Write(body)
 }
 
 func writeMessage(w http.ResponseWriter, msg string, status int) {
@@ -78,4 +100,11 @@ func writeMessage(w http.ResponseWriter, msg string, status int) {
 	}
 
 	w.Write(j)
+}
+
+type Result struct {
+	Url         string   `json:"url"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Tags        []string `json:"tags"`
 }
