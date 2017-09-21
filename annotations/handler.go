@@ -7,11 +7,13 @@ import (
 	"net/http"
 
 	"bytes"
+	"io/ioutil"
+
 	"github.com/Financial-Times/photo-tron/fotoware"
+	"github.com/Financial-Times/photo-tron/suggest"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 )
 
 type Handler struct {
@@ -78,4 +80,54 @@ func writeMessage(w http.ResponseWriter, msg string, status int) {
 	}
 
 	w.Write(j)
+}
+
+type SuggestHandler struct {
+	suggestAPI  *suggest.SuggestAPI
+	fotowareAPI *fotoware.FotowareAPI
+}
+
+func NewSuggestHandler(suggestAPI *suggest.SuggestAPI, fwAPI *fotoware.FotowareAPI) *SuggestHandler {
+	return &SuggestHandler{suggestAPI, fwAPI}
+}
+
+func (h *SuggestHandler) SuggestServeHTTP(w http.ResponseWriter, r *http.Request) {
+	tID := tidutils.GetTransactionIDFromRequest(r)
+
+	body, err := ioutil.ReadAll(r.Body)
+
+	suggestions, err := h.suggestAPI.Search(body)
+	if err != nil {
+		log.WithError(err).WithField(tidutils.TransactionIDKey, tID).Error("Error in calling UPP Public Annotations API")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	keywords := []string{}
+
+	for _, s := range suggestions.Suggestions {
+		if s.Thing.PrefLabel != "" {
+			keywords = append(keywords, s.Thing.PrefLabel)
+		}
+	}
+
+	resp, err := h.fotowareAPI.Search(keywords)
+
+	defer resp.Body.Close()
+
+	w.Header().Add("Content-Type", "application/json")
+	if resp.StatusCode == http.StatusOK {
+		respBody, _ := ioutil.ReadAll(resp.Body)
+		reader := bytes.NewReader(respBody)
+		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, reader)
+		return
+	}
+
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadRequest {
+		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, resp.Body)
+	} else {
+		writeMessage(w, "Service unavailable", http.StatusServiceUnavailable)
+	}
 }

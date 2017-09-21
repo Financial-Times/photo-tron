@@ -9,6 +9,7 @@ import (
 	"github.com/Financial-Times/photo-tron/annotations"
 	"github.com/Financial-Times/photo-tron/fotoware"
 	"github.com/Financial-Times/photo-tron/health"
+	"github.com/Financial-Times/photo-tron/suggest"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/husobee/vestigo"
 	"github.com/jawher/mow.cli"
@@ -77,11 +78,13 @@ func main() {
 		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
 
 		fwAPI := fotoware.NewFotowareAPI(*fotowareAPIKey)
+		suggestAPI := suggest.NewSuggestAPI(*uppAPIKey)
 		annotationsAPI := annotations.NewAnnotationsAPI(*annotationsEndpoint, *uppAPIKey)
 		annotationsHandler := annotations.NewHandler(annotationsAPI, fwAPI)
+		suggestHandler := annotations.NewSuggestHandler(suggestAPI, fwAPI)
 		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, annotationsAPI)
 
-		serveEndpoints(*port, apiYml, annotationsHandler, healthService)
+		serveEndpoints(*port, apiYml, annotationsHandler, suggestHandler, healthService)
 	}
 
 	err := app.Run(os.Args)
@@ -91,10 +94,11 @@ func main() {
 	}
 }
 
-func serveEndpoints(port string, apiYml *string, handler *annotations.Handler, healthService *health.HealthService) {
+func serveEndpoints(port string, apiYml *string, handler *annotations.Handler, suggestHandler *annotations.SuggestHandler, healthService *health.HealthService) {
 
 	r := vestigo.NewRouter()
 	r.Get("/photos-by-uuid/:uuid", handler.ServeHTTP)
+	r.Post("/photos-by-text", suggestHandler.SuggestServeHTTP)
 	var monitoringRouter http.Handler = r
 	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
 	monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)

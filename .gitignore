@@ -1,0 +1,5 @@
+photo-tron
+
+/vendor/*
+!/vendor/vendor.json
+*.exe
