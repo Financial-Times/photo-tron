@@ -9,12 +9,21 @@ import (
 )
 
 type SuggestionBody struct {
-	Suggestions []struct {
-		Thing struct {
-			ID        string `json:"id"`
-			PrefLabel string `json:"prefLabel"`
-		} `json:"thing"`
-	} `json:"suggestions"`
+	Suggestions []Suggestion `json:"suggestions"`
+}
+
+type Suggestion struct {
+	Thing struct {
+		ID        string   `json:"id"`
+		PrefLabel string   `json:"prefLabel"`
+		Types     []string `json:"types"`
+	} `json:"thing"`
+	Provenances []struct {
+		Scores []struct {
+			ScoringSystem string  `json:"scoringSystem"`
+			Value         float64 `json:"value"`
+		} `json:"scores"`
+	} `json:"provenances"`
 }
 
 type SuggestAPI struct {

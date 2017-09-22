@@ -8,11 +8,13 @@ import (
 
 	"io/ioutil"
 
+	"fmt"
 	"github.com/Financial-Times/photo-tron/fotoware"
 	"github.com/Financial-Times/photo-tron/suggest"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	log "github.com/sirupsen/logrus"
+	"sort"
 )
 
 type Handler struct {
@@ -104,11 +106,17 @@ func (h *SuggestHandler) SuggestServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	sort.Sort(sort.Reverse(ByScore(suggestions.Suggestions)))
+
 	keywords := []string{}
 
-	for _, s := range suggestions.Suggestions {
+	for i, s := range suggestions.Suggestions {
+		fmt.Println(s)
 		if s.Thing.PrefLabel != "" {
 			keywords = append(keywords, s.Thing.PrefLabel)
+		}
+		if i > 1 {
+			break
 		}
 	}
 
@@ -124,6 +132,18 @@ func (h *SuggestHandler) SuggestServeHTTP(w http.ResponseWriter, r *http.Request
 		writeMessage(w, err.Error(), 500)
 	}
 	w.Write(outBody)
+}
+
+type ByScore []suggest.Suggestion
+
+func (a ByScore) Len() int      { return len(a) }
+func (a ByScore) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByScore) Less(i, j int) bool {
+	return f1measure(a[i].Provenances[0].Scores[0].Value, a[i].Provenances[0].Scores[1].Value) < f1measure(a[j].Provenances[0].Scores[0].Value, a[j].Provenances[0].Scores[1].Value)
+}
+
+func f1measure(a float64, b float64) float64 {
+	return 2 * (a * b) / (a + b)
 }
 
 func buildBody(p fotoware.Payload) ([]byte, error) {

@@ -1,4 +1,4 @@
 apiVersion: v1
 description: photo-tron Helm chart for Kubernetes
 name: photo-tron
-version: 0.0.0  # this entry can be left untouched as it is automatically handled by Jenkins pipeline
+version: 0.0.2  # this entry can be left untouched as it is automatically handled by Jenkins pipeline
